@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Container, Form, Button, Alert } from 'react-bootstrap';
 import { useForm } from 'react-hook-form';
-import { useDispatch, useSelector } from 'react-redux';
-import { registerUser } from '../store/authSlice';
 import { useNavigate } from 'react-router-dom';
+import { authService } from '../services/authService';
 
 const Registration = () => {
   const {
@@ -13,15 +12,23 @@ const Registration = () => {
     formState: { errors }
   } = useForm();
 
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const password = watch('password');
 
   const onSubmit = async (data) => {
-    const result = await dispatch(registerUser(data));
-    if (!result.error) {
+    try {
+      setLoading(true);
+      setError(null);
+      // Remove confirmPassword from the data before sending to API
+      const { confirmPassword, ...registrationData } = data;
+      await authService.register(registrationData);
       navigate('/login');
+    } catch (err) {
+      setError(err.message || 'Registration failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,6 +73,27 @@ const Registration = () => {
         </Form.Group>
 
         <Form.Group className="mb-3">
+          <Form.Label>Phone Number</Form.Label>
+          <Form.Control
+            type="tel"
+            {...register('phoneNumber', {
+              required: 'Phone number is required',
+              pattern: {
+                value: /^[0-9]{10}$/,
+                message: 'Please enter a valid 10-digit phone number'
+              }
+            })}
+            placeholder="Enter 10-digit phone number"
+            isInvalid={!!errors.phoneNumber}
+          />
+          {errors.phoneNumber && (
+            <Form.Control.Feedback type="invalid">
+              {errors.phoneNumber.message}
+            </Form.Control.Feedback>
+          )}
+        </Form.Group>
+
+        <Form.Group className="mb-3">
           <Form.Label>Email</Form.Label>
           <Form.Control
             type="email"
@@ -91,7 +119,10 @@ const Registration = () => {
             type="password"
             {...register('password', {
               required: 'Password is required',
-              minLength: { value: 6, message: 'Password must be at least 6 characters' }
+              minLength: {
+                value: 6,
+                message: 'Password must be at least 6 characters'
+              }
             })}
             isInvalid={!!errors.password}
           />
@@ -115,22 +146,6 @@ const Registration = () => {
           {errors.confirmPassword && (
             <Form.Control.Feedback type="invalid">
               {errors.confirmPassword.message}
-            </Form.Control.Feedback>
-          )}
-        </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Check
-            type="checkbox"
-            label="I accept the terms and conditions"
-            {...register('acceptTerms', {
-              required: 'You must accept the terms and conditions'
-            })}
-            isInvalid={!!errors.acceptTerms}
-          />
-          {errors.acceptTerms && (
-            <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
-              {errors.acceptTerms.message}
             </Form.Control.Feedback>
           )}
         </Form.Group>

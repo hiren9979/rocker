@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Container, Form, Button, Alert } from 'react-bootstrap';
 import { useForm } from 'react-hook-form';
-import { useDispatch, useSelector } from 'react-redux';
-import { loginUser } from '../store/authSlice';
 import { useNavigate } from 'react-router-dom';
+import { authService } from '../services/authService';
 
 const Login = () => {
   const {
@@ -12,14 +11,20 @@ const Login = () => {
     formState: { errors }
   } = useForm();
 
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const onSubmit = async (data) => {
-    const result = await dispatch(loginUser(data));
-    if (!result.error) {
-      navigate('/dashboard'); // Navigate to dashboard after successful login
+    try {
+      setLoading(true);
+      setError(null);
+      await authService.login(data.email, data.password);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
     }
   };
 
